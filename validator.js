@@ -10,6 +10,9 @@ var request = require('request')
 , urlsEnv = process.env['URLS']
 , urls = []
 
+var NEW_ERROR = "new"
+, OLD_ERROR = "gone"
+
 if( urlsEnv && urlsEnv.length > 0 ) {
 	urls = urlsEnv.split(' ')
 	processUrls()
@@ -28,51 +31,11 @@ function processUrls( ) {
 		console.log( "Checking " + url )
 		errors[ url ] = { 
 			nu: false,
-			ol: false
+			ol: false,
+			changes: []
 		}
 		readOldErrors( url )
 		getW3sOpinion( url )
-	})
-}
-
-function getSaveName( urlName ) {
-	return saveFolder + urlName.replace( /\//g, '-' ) + '.json'
-}
-
-function getChangedSaveName( urlName ) {
-	return changedFolder + urlName.replace( /\//g, '-' ) + '.json'
-}
-
-function getW3sOpinion( url ) {
-	request( w3url + uriOpt + url + outputOpt, function( error, resp, body ) {
-		if( !error ) {
-			if( resp && resp.statusCode == 200 ) {
-				try {
-					var j = JSON.parse( body )
-					console.log( "Setting new data for " + url )
-					errors[ url ].nu = j
-					finishIfDone()
-				} catch( e ) {
-					console.log( e )
-				}
-			}
-		} else {
-			console.log( "Error in request for " + url + ": " + error )
-			errors[ url ].nu = {}
-		}
-	})
-}
-
-function saveFile( url, jsonData ) {
-	var data = JSON.stringify( jsonData, null, 4 )
-	
-	fs.writeFile( getSaveName( url ), data, function( err ) {
-		if( err ) throw err
-		console.log( 'Saved ' + getSaveName( url ) )
-	})
-	fs.writeFile( getChangedSaveName( url ), data, function( err ) {
-		if( err ) throw err
-		console.log( 'Saved ' + getChangedSaveName( url ) )
 	})
 }
 
@@ -102,26 +65,39 @@ function readOldErrors( url ) {
 				}
 			})
 		}
+		compareAndSaveIfDone()
 	})
 }
 
-function areWeDone() {
-	var notDone = Object.keys( errors ).some( function( e ) {
-		if( errors[e].nu == false || errors[e].ol == false ) {
-			console.log( "Waiting for validation of " + e )
-			return true
+function getW3sOpinion( url ) {
+	request( w3url + uriOpt + url + outputOpt, function( error, resp, body ) {
+		if( !error ) {
+			if( resp && resp.statusCode == 200 ) {
+				try {
+					var j = JSON.parse( body )
+					console.log( "Setting new data for " + url )
+					errors[ url ].nu = j
+				} catch( e ) {
+					console.log( "Error in parsing new data " + e )
+					errors[ url ].nu = {}
+				}
+			}
+		} else {
+			console.log( "Error in request for " + url + ": " + error )
+			errors[ url ].nu = {}
 		}
+		compareAndSaveIfDone()
 	})
-	return !notDone
 }
 
-function finishIfDone() {
+function compareAndSaveIfDone() {
 	if( areWeDone() ) {
 		Object.keys( errors ).forEach( function( url ) {
 			console.log( "Checking for data of " + url )
-			if( compareErrorObjects( errors[url].nu, errors[url].ol ) ) {
+			if( findChanges( errors[url].nu, errors[url].ol, url ) ) {
 				console.log( "Saving for " + url )
-				saveFile( url, errors[url].nu )
+				saveFile( url )
+				printChanges()
 				diffsFound = 1
 			} else {
 				console.log( "No differences found for " + url )
@@ -130,26 +106,98 @@ function finishIfDone() {
 	}
 }
 
-function compareErrorObjects( nu, ol ) {
-	console.log( "Comparing ..." )
-	if( nu.messages ) {
-		if( ol && ol.messages ) {
-			if( nu.messages.length != ol.messages.length ) {
-				console.log( "Diff in length already!" )
-				return true
-			} else {
-				if( nu.messages.some( function( msg, index ) {
-					if( msg.message != ol.messages[index].message ) {
-						return true
-					}
-				})) {
-					return true
-				}
-			} 
-		} else {
-			return true
-		} 
+function findChanges( nu, ol, url ) {
+	var changesFound = false
+	console.log( "Comparing " )
+	if( !nu || !ol ) {
+		console.log( "Something went wrong. Very wrong. nu: " + nu + ", ol: " + ol)
+		return true
 	}
-	return false
+
+	if( nu.messages ) {
+		if( nu.messages.length && ( ! ol.messages || ! ol.messages.length ) ) {
+			console.log( "No old errors - all new!" )
+			return true
+		}
+
+		if( ol.messages && ol.messages.length ) {
+			if( nu.messages.length >= ol.messages.length ) {
+				nu.messages.forEach( function( n ) {
+					if( ! ol.messages.some( function( o ) {
+						if( o.message == n.message && o.lastLine == n.lastLine ) {
+							return true
+						}
+					})) {
+						n.changeType = NEW_ERROR
+						errors[ url ].changes.push(n)
+						changesFound = true
+					}
+				})
+				// less errors
+			} else {
+				ol.messages.forEach( function( o ) {
+					if( ! nu.messages.some( function( n ) {
+						if( n.message == o.message && n.lastLine == o.lastLine ) {
+							return true
+						}
+					})) {
+						o.changeType = OLD_ERROR
+						errors[ url ].changes.push(o)
+						changesFound = true
+					}
+				})
+			}
+		}
+	}
+	return changesFound
 }
 
+function areWeDone() {
+	var notDone = Object.keys( errors ).some( function( e ) {
+		if( errors[e].nu == false || errors[e].ol == false ) {
+			return true
+		}
+	})
+	return !notDone
+}
+
+function getSaveName( urlName ) {
+	return saveFolder + urlName.replace( /\//g, '-' ) + '.json'
+}
+
+function getChangedSaveName( urlName ) {
+	return changedFolder + urlName.replace( /\//g, '-' ) + '.json'
+}
+
+function saveFile( url ) {
+	try{ 
+		var data = JSON.stringify( errors[url].nu, null, 4 )
+		var changes = JSON.stringify( errors[url].changes, null, 4 )
+	} catch( e ) {
+		console.log( "Error in JSON" )
+		return
+	}
+	
+	fs.writeFile( getSaveName( url ), data, function( err ) {
+		if( err ) throw err
+		console.log( 'Saved ' + getSaveName( url ) )
+	})
+	fs.writeFile( getChangedSaveName( url ), changes, function( err ) {
+		if( err ) throw err
+		console.log( 'Saved ' + getChangedSaveName( url ) )
+	})
+}
+
+function printChanges() {
+	Object.keys( errors ).forEach( function( e ) {
+		if( errors[e].changes.length ) {
+			errors[e].changes.forEach( function( c ) {
+				console.log( (( c.changeType === NEW_ERROR ) ? "New" : "Deleted" ) + " error: " + JSON.stringify( c, null, 4 ) )
+			})
+		}
+	})
+}
+
+function chopSlashAtEnd( str ) {
+	return ( str.lastIndexOf( '/' ) === str.length -1 ) ? str.slice(0, -1) : str
+}
