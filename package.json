@@ -1,12 +1,16 @@
 {
-  "name": "validator",
+  "name": "w3c-validator-diff",
+  "author":	"Samuel Gabel",
+  "description": "Validate HTML markup with w3c's validator",
+  "repository": "git://github.com/smlgbl/markupValidatorJS.git",
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "start": "node app"
+    "start": "node validator"
   },
   "dependencies": {
     "request": "*",
-	"fs":	"*"
+	"fs":	"*",
+	"json2html": "*"
   }
 }

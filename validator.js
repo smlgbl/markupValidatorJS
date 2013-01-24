@@ -1,4 +1,5 @@
 var request = require('request')
+, j2h = require('json2html')
 , fs = require('fs')
 , w3url = 'http://validator.w3.org/check'
 , uriOpt = '?uri='
@@ -40,7 +41,7 @@ function processUrls( ) {
 }
 
 function readOldErrors( url ) {
-	var fileName = getSaveName( url )
+	var fileName = getJsonFileName( url )
 	fs.exists( fileName, function( exists ) {
 		if( !exists ) {
 			console.log( "Old file doesn't exist" )
@@ -97,7 +98,6 @@ function compareAndSaveIfDone() {
 			if( findChanges( errors[url].nu, errors[url].ol, url ) ) {
 				console.log( "Saving for " + url )
 				saveFile( url )
-				printChanges()
 				diffsFound = 1
 			} else {
 				console.log( "No differences found for " + url )
@@ -161,30 +161,39 @@ function areWeDone() {
 	return !notDone
 }
 
-function getSaveName( urlName ) {
+function getJsonFileName( urlName ) {
 	return saveFolder + urlName.replace( /\//g, '-' ) + '.json'
 }
 
-function getChangedSaveName( urlName ) {
-	return changedFolder + urlName.replace( /\//g, '-' ) + '.json'
+function getHtmlFileName( urlName ) {
+	return saveFolder + urlName.replace( /\//g, '-' ) + '.html'
+}
+
+function getHtmlChangeFileName( urlName ) {
+	return changedFolder + urlName.replace( /\//g, '-' ) + '.html'
 }
 
 function saveFile( url ) {
 	try{ 
 		var data = JSON.stringify( errors[url].nu, null, 4 )
-		var changes = JSON.stringify( errors[url].changes, null, 4 )
+		var html = j2h.render( errors[url].nu )
+		var changes = j2h.render( errors[url].changes )
 	} catch( e ) {
 		console.log( "Error in JSON" )
 		return
 	}
 	
-	fs.writeFile( getSaveName( url ), data, function( err ) {
+	fs.writeFile( getJsonFileName( url ), data, function( err ) {
 		if( err ) throw err
-		console.log( 'Saved ' + getSaveName( url ) )
+		console.log( 'Saved ' + getJsonFileName( url ) )
 	})
-	fs.writeFile( getChangedSaveName( url ), changes, function( err ) {
+	fs.writeFile( getHtmlFileName( url ), html, function( err ) {
 		if( err ) throw err
-		console.log( 'Saved ' + getChangedSaveName( url ) )
+		console.log( 'Saved ' + getHtmlFileName( url ) )
+	})
+	fs.writeFile( getHtmlChangeFileName( url ), changes, function( err ) {
+		if( err ) throw err
+		console.log( 'Saved ' + getHtmlChangeFileName( url ) )
 	})
 }
 
@@ -192,7 +201,8 @@ function printChanges() {
 	Object.keys( errors ).forEach( function( e ) {
 		if( errors[e].changes.length ) {
 			errors[e].changes.forEach( function( c ) {
-				console.log( (( c.changeType === NEW_ERROR ) ? "New" : "Deleted" ) + " error: " + JSON.stringify( c, null, 4 ) )
+//				console.log( (( c.changeType === NEW_ERROR ) ? "New" : "Deleted" ) + " error: " + JSON.stringify( c, null, 4 ) )
+				console.log( j2h.render( c ) )
 			})
 		}
 	})
