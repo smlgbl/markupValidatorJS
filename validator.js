@@ -128,7 +128,7 @@ function findChanges( nu, ol, url ) {
 						if( o.message == n.message && o.lastLine == n.lastLine ) {
 							return true
 						}
-					})) {
+					}) && isNotJustInfo( n ) ) {
 						n.changeType = NEW_ERROR
 						errors[ url ].changes.push(n)
 						changesFound = true
@@ -141,7 +141,7 @@ function findChanges( nu, ol, url ) {
 						if( n.message == o.message && n.lastLine == o.lastLine ) {
 							return true
 						}
-					})) {
+					}) && isNotJustInfo( o ) ) {
 						o.changeType = OLD_ERROR
 						errors[ url ].changes.push(o)
 						changesFound = true
@@ -151,6 +151,10 @@ function findChanges( nu, ol, url ) {
 		}
 	}
 	return changesFound
+}
+
+function isNotJustInfo( msg ) {
+	return ( msg.type != 'info' || ( msg.subtype && msg.subtype == 'warning' ) )
 }
 
 function areWeDone() {
