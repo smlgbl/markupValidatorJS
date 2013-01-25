@@ -80,6 +80,7 @@ function getW3sOpinion( url ) {
 					errors[ url ].nu = j
 				} catch( e ) {
 					console.log( "Error in parsing new data " + e )
+					console.log( "Data: " + body )
 					errors[ url ].nu = {}
 				}
 			}
