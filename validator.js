@@ -192,10 +192,12 @@ function saveFile( url ) {
 		if( err ) throw err
 		console.log( 'Saved ' + getHtmlFileName( url ) )
 	})
-	fs.writeFile( getHtmlChangeFileName( url ), changes, function( err ) {
-		if( err ) throw err
-		console.log( 'Saved ' + getHtmlChangeFileName( url ) )
-	})
+	if( Object.keys( errors[url].changes ).length ) {
+		fs.writeFile( getHtmlChangeFileName( url ), changes, function( err ) {
+			if( err ) throw err
+			console.log( 'Saved ' + getHtmlChangeFileName( url ) )
+		})
+	}
 }
 
 function printChanges() {
