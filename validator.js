@@ -9,6 +9,7 @@ var request = require('request'),
 	diffsFound = 0,
 	errors = {},
 	urlsEnv = process.env.URLS,
+	buildNo = process.env.BUILD_NUMBER,
 	urls = [];
 
 var NEW_ERROR = "new",
@@ -175,7 +176,8 @@ function getHtmlFileName( urlName ) {
 }
 
 function getHtmlChangeFileName( urlName ) {
-	return changedFolder + urlName.replace( /\//g, '-' ) + '.html';
+	var b = buildNo ? '.' + buildNo : '';
+	return changedFolder + urlName.replace( /\//g, '-' ) + b + '.html';
 }
 
 function saveFile( url ) {
