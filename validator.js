@@ -123,7 +123,7 @@ function findChanges( nu, ol, url ) {
 		}
 
 		if( ol.messages && ol.messages.length ) {
-			if( nu.messages.length >= ol.messages.length ) {
+			if( nu.messages.length > ol.messages.length ) {
 				nu.messages.forEach( function( n ) {
 					if( ! ol.messages.some( function( o ) {
 						if( o.message == n.message && o.lastLine == n.lastLine ) {
@@ -136,7 +136,21 @@ function findChanges( nu, ol, url ) {
 					}
 				});
 				// less errors
-			} else {
+			} else if( nu.messages.length == ol.messages.length ) {
+				// check for different error message
+				nu.messages.forEach( function( n ){
+					if( ! ol.messages.some( function( o ) {
+						if( o.message == n.message ) {
+							return true;
+						}
+					}) && isNotJustInfo( n ) ) {
+						n.changeType = NEW_ERROR;
+						errors[ url ].changes.push(n);
+						changesFound = true;
+					}
+				});
+			}
+			else {
 				ol.messages.forEach( function( o ) {
 					if( ! nu.messages.some( function( n ) {
 						if( n.message == o.message && n.lastLine == o.lastLine ) {
