@@ -1,3 +1,5 @@
+"use strict";
+
 var request = require('request'),
 	j2h = require('json2html'),
 	fs = require('fs'),
@@ -31,7 +33,7 @@ process.on('exit', function() {
 function processUrls( ) {
 	urls.forEach( function( url ) {
 		console.log( "Checking " + url );
-		errors[ url ] = { 
+		errors[ url ] = {
 			nu: false,
 			ol: false,
 			changes: []
@@ -50,21 +52,22 @@ function readOldErrors( url ) {
 		} else {
 			console.log( "Old file exists");
 			fs.readFile( fileName, function( err, data ) {
-				if( err ) console.log( "Unable to read file " + fileName );
-				else {
-					if( data && data.length ) {
-						try {
-							var j = JSON.parse( data );
-							console.log( "Setting old data for " + url );
-							errors[ url ].ol = j;
-						} catch( e ) {
-							console.log( e );
-						}
-					} else {
-						console.log( " - but it's empty!");
-						errors[ url ].ol = {};
-					}
-				}
+                if (!err) {
+                    if (data && data.length) {
+                        try {
+                            var j = JSON.parse(data);
+                            console.log("Setting old data for " + url);
+                            errors[ url ].ol = j;
+                        } catch (e) {
+                            console.log(e);
+                        }
+                    } else {
+                        console.log(" - but it's empty!");
+                        errors[ url ].ol = {};
+                    }
+                } else {
+                    console.log("Unable to read file " + fileName);
+                }
 			});
 		}
 		compareAndSaveIfDone();
@@ -74,7 +77,7 @@ function readOldErrors( url ) {
 function getW3sOpinion( url ) {
 	request( w3url + uriOpt + url + outputOpt, function( error, resp, body ) {
 		if( !error ) {
-			if( resp && resp.statusCode == 200 ) {
+			if( resp && resp.statusCode === 200 ) {
 				try {
 					var j = JSON.parse( body );
 					console.log( "Setting new data for " + url );
@@ -126,7 +129,7 @@ function findChanges( nu, ol, url ) {
 			if( nu.messages.length > ol.messages.length ) {
 				nu.messages.forEach( function( n ) {
 					if( ! ol.messages.some( function( o ) {
-						if( o.message == n.message && o.lastLine == n.lastLine ) {
+						if( o.message === n.message && o.lastLine === n.lastLine ) {
 							return true;
 						}
 					}) && isNotJustInfo( n ) ) {
@@ -136,11 +139,11 @@ function findChanges( nu, ol, url ) {
 					}
 				});
 				// less errors
-			} else if( nu.messages.length == ol.messages.length ) {
+			} else if( nu.messages.length === ol.messages.length ) {
 				// check for different error message
 				nu.messages.forEach( function( n ){
 					if( ! ol.messages.some( function( o ) {
-						if( o.message == n.message ) {
+						if( o.message === n.message ) {
 							return true;
 						}
 					}) && isNotJustInfo( n ) ) {
@@ -153,7 +156,7 @@ function findChanges( nu, ol, url ) {
 			else {
 				ol.messages.forEach( function( o ) {
 					if( ! nu.messages.some( function( n ) {
-						if( n.message == o.message && n.lastLine == o.lastLine ) {
+						if( n.message === o.message && n.lastLine === o.lastLine ) {
 							return true;
 						}
 					}) && isNotJustInfo( o ) ) {
@@ -169,7 +172,7 @@ function findChanges( nu, ol, url ) {
 }
 
 function isNotJustInfo( msg ) {
-	return ( msg.type != 'info' || ( msg.subtype && msg.subtype == 'warning' ) );
+	return ( msg.type !== 'info' || ( msg.subtype && msg.subtype === 'warning' ) );
 }
 
 function areWeDone() {
@@ -195,7 +198,7 @@ function getHtmlChangeFileName( urlName ) {
 }
 
 function saveFile( url ) {
-	try { 
+	try {
 		var data = JSON.stringify( errors[url].nu, null, 4 );
 		var html = j2h.render( errors[url].nu );
 		var changes = j2h.render( errors[url].changes );
@@ -216,16 +219,13 @@ function saveFile( url ) {
 		}
 	} catch( e ) {
 		console.log( "Error in JSON" );
-		return;
 	}
-	
 }
 
 function printChanges() {
 	Object.keys( errors ).forEach( function( e ) {
 		if( errors[e].changes.length ) {
 			errors[e].changes.forEach( function( c ) {
-//				console.log( (( c.changeType === NEW_ERROR ) ? "New" : "Deleted" ) + " error: " + JSON.stringify( c, null, 4 ) )
 				console.log( j2h.render( c ) );
 			});
 		}
