@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "request": "*",
-	"fs":	"*",
 	"json2html": "*"
   }
 }
