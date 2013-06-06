@@ -31,15 +31,17 @@ process.on('exit', function() {
 });
 
 function processUrls( ) {
-	urls.forEach( function( url ) {
-		console.log( "Checking " + url );
-		errors[ url ] = {
-			nu: false,
+	urls.forEach( function( url, index ) {
+		setTimeout( function() {
+			console.log( "Checking " + url );
+			errors[ url ] = {
+				nu: false,
 			ol: false,
 			changes: []
-		};
-		readOldErrors( url );
-		getW3sOpinion( url );
+			};
+			readOldErrors( url );
+			getW3sOpinion( url );
+		}, 1000*index);
 	});
 }
 
