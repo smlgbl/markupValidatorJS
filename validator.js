@@ -3,7 +3,7 @@
 var request = require('request'),
 	j2h = require('json2html'),
 	fs = require('fs'),
-	w3url = 'http://localhost/w3c-validator/check',
+	w3url = 'http://validator.w3.org/check',
 	uriOpt = '?uri=',
 	outputOpt = '&output=json',
 	saveFolder = 'checked/',
@@ -75,7 +75,14 @@ function readOldErrors( url ) {
 }
 
 function getW3sOpinion( url ) {
-	request( w3url + uriOpt + url + outputOpt, function( error, resp, body ) {
+	console.log("requesting for " + url);
+	var requestOptions = {
+		'url': w3url + uriOpt + url + outputOpt,
+		headers: {
+			'user-agent': "Mozilla/5.0"
+		}
+	};
+	request(requestOptions, function( error, resp, body ) {
 		if( !error ) {
 			if( resp && resp.statusCode === 200 ) {
 				try {
@@ -87,6 +94,8 @@ function getW3sOpinion( url ) {
 					console.log( "Data: " + body );
 					errors[ url ].nu = {};
 				}
+			} else {
+				console.log("Error in request: " + JSON.stringify(resp, null, 4));
 			}
 		} else {
 			console.log( "Error in request for " + url + ": " + error );
