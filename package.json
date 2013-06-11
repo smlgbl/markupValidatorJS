@@ -8,13 +8,14 @@
 		"type": "MIT",
 		"url": "https://github.com/smlgbl/hobson/blob/master/LICENSE-MIT"
 	}
+	],
 	"version": "0.0.1",
-		"private": true,
-		"scripts": {
-			"start": "node validator"
-		},
-		"dependencies": {
-			"request": "*",
-			"json2html": "*"
-		}
+	"private": true,
+	"scripts": {
+		"start": "node validator"
+	},
+	"dependencies": {
+		"request": "*",
+		"json2html": "*"
+	}
 }
