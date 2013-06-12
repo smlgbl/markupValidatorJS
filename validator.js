@@ -1,27 +1,84 @@
-"use strict";
-
 var request = require('request'),
 	j2h = require('json2html'),
 	fs = require('fs'),
+	url = require('url'),
+	check = require('validator').check,
 	w3url = 'http://validator.w3.org/check',
 	uriOpt = '?uri=',
+	fragmentOpt = '?fragment=',
 	outputOpt = '&output=json',
 	saveFolder = 'checked/',
 	changedFolder = 'changed/',
 	diffsFound = 0,
 	errors = {},
-	urlsEnv = process.env.URLS,
-	buildNo = process.env.BUILD_NUMBER,
+	buildNo = false,
+	remember = false,
 	urls = [];
 
 var NEW_ERROR = "new",
 	OLD_ERROR = "gone";
 
-if( urlsEnv && urlsEnv.length > 0 ) {
-	urls = urlsEnv.split(' ');
+if( process.argv.length < 3 ) {
+	help();
+	process.exit(1);
+}
+
+function help() {
+	console.log("Usage: " + process.argv[0] + ' ' + process.argv[1].substring( process.argv[1].lastIndexOf('/')+1,process.argv[1].length));
+	console.log("\t--urls URLS\t[mandatory]\tSpace-separated list of urls to test");
+	console.log("\t--remember \t[optional]\tWhether we should remember the current status and compare with last, or just get the results");
+	console.log("\t--build X\t[optional]\tNumber of current build - used to save the current status");
+	console.log("\t--help\t\tDisplay this message");
+}
+
+process.argv.forEach( function(val, index, array){
+	if(val.indexOf('--') === 0) {
+		var option = val.substring(2);
+		switch(option) {
+			case 'urls':
+				for(var i = index+1; array[i].indexOf('--') === -1 && i<array.length; i++){
+					try {
+						check(array[i]).isUrl();
+						urls.push(array[i]);
+					} catch(ValidatorError) {
+						console.log("Please provide valid URLS.\n'" + array[i] + "' doesn't count as one.");
+						help();
+						process.exit(1);
+					}
+				}
+				break;
+			case 'remember':
+				remember = true;
+				break;
+			case 'build':
+				if( array.length > index+1 ) {
+					var buildNoArray = array[index+1].match(/^\d+$/);
+					if( buildNoArray.length === 1 ) {
+						buildNo = buildNoArray[0];
+						break;
+					}
+				}
+				console.log("Option --build takes a single number as argument");
+				help();
+				process.exit(1);
+				break;
+			case 'help':
+				help();
+				process.exit(0);
+				break;
+			default:
+				console.log("Unrecognized option: " + val);
+				help();
+				process.exit(1);
+		}
+	}
+});
+
+if( urls.length ) {
 	processUrls();
 } else {
-	console.log( "Please provide a list of URLs as space-separated list in the environment variable URLS." );
+	console.log( "Please provide a list of URLs" );
+	help();
 	process.exit(1);
 }
 
