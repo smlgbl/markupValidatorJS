@@ -16,6 +16,9 @@ var NEW_ERROR = "new",
 	OLD_ERROR = "gone";
 
 var validator = {};
+validator.internal = {};
+validator.helpers = {};
+
 module.exports = validator;
 
 process.on('exit', function() {
