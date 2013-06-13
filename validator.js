@@ -36,7 +36,7 @@ process.argv.forEach( function(val, index, array){
 		var option = val.substring(2);
 		switch(option) {
 			case 'urls':
-				for(var i = index+1; array[i].indexOf('--') === -1 && i<array.length; i++){
+				for(var i = index+1; i<array.length && array[i].indexOf('--') === -1 ; i++){
 					try {
 						check(array[i]).isUrl();
 						urls.push(array[i]);
@@ -84,7 +84,17 @@ if( urls.length ) {
 
 process.on('exit', function() {
 	console.log( "Done." );
-	process.exit( diffsFound );
+	if( remember && diffsFound ) {
+		process.exit( diffsFound );
+	} else {
+		var errorsFound = 0;
+		Object.keys( errors ).forEach(function(url) {
+			if( errors[url].nu.length ) {
+				errorsFound = 1;
+			}
+		});
+		process.exit( errors );
+	}
 });
 
 function processUrls( ) {
@@ -96,7 +106,9 @@ function processUrls( ) {
 			ol: false,
 			changes: []
 			};
-			readOldErrors( url );
+			if(remember) {
+				readOldErrors( url );
+			}
 			getW3sOpinion( url );
 		}, 1000*index);
 	});
@@ -160,7 +172,9 @@ function getW3sOpinion( url ) {
 			console.log( "Error in request for " + url + ": " + error );
 			errors[ url ].nu = {};
 		}
-		compareAndSaveIfDone();
+		if(remember) {
+			compareAndSaveIfDone();
+		}
 	});
 }
 
