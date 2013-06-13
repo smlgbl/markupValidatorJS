@@ -1,0 +1,74 @@
+#!/usr/bin/env node
+
+var validator = require('../validator');
+var check = require('validator').check;
+
+var args = process.argv;
+var options = {};
+options.remember = false;
+options.buildNo = false;
+options.urls = [];
+
+if( args.length < 3 ) {
+	help();
+	process.exit(1);
+}
+
+function help() {
+	console.log("Usage: " + args[0] + ' ' + args[1].substring( args[1].lastIndexOf('/')+1,args[1].length));
+	console.log("\t--urls URLS\t[mandatory]\tSpace-separated list of urls to test");
+	console.log("\t--remember \t[optional]\tWhether we should remember the current status and compare with last, or just get the results");
+	console.log("\t--build X\t[optional]\tNumber of current build - used to save the current status");
+	console.log("\t--help\t\tDisplay this message");
+}
+
+args.forEach( function(val, index, array){
+	if(val.indexOf('--') === 0) {
+		var option = val.substring(2);
+		switch(option) {
+			case 'urls':
+				for(var i = index+1; i<array.length && array[i].indexOf('--') === -1 ; i++){
+					try {
+						check(array[i]).isUrl();
+						options.urls.push(array[i]);
+					} catch(ValidatorError) {
+						console.log("Please provide valid URLS.\n'" + array[i] + "' doesn't count as one.");
+						help();
+						process.exit(1);
+					}
+				}
+				break;
+			case 'remember':
+				options.remember = true;
+				break;
+			case 'build':
+				if( array.length > index+1 ) {
+					var buildNoArray = array[index+1].match(/^\d+$/);
+					if( buildNoArray.length === 1 ) {
+						options.buildNo = buildNoArray[0];
+						break;
+					}
+				}
+				console.log("Option --build takes a single number as argument");
+				help();
+				process.exit(1);
+				break;
+			case 'help':
+				help();
+				process.exit(0);
+				break;
+			default:
+				console.log("Unrecognized option: " + val);
+				help();
+				process.exit(1);
+		}
+	}
+});
+
+if( urls.length ) {
+	validator.processUrls( options );
+} else {
+	console.log( "Please provide a list of URLs" );
+	help();
+	process.exit(1);
+}
